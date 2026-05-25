@@ -2,7 +2,7 @@
   "name": "Gym Rest Timer",
   "short_name": "Gym Timer",
   "description": "Temporizador de descanso entre sets",
- "start_url": "/Apps/",
+"start_url": "https://nicolasaltamirano025-ux.github.io/Apps/",
 "scope": "/Apps/",
   "display": "standalone",
   "background_color": "#0f0f0f",
