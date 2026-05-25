@@ -1,0 +1,304 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>Gym Rest Timer</title>
+
+  <!-- PWA iOS -->
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Gym Timer" />
+  <meta name="theme-color" content="#0f0f0f" />
+  <link rel="manifest" href="manifest.json" />
+
+  <!-- Ícono para iOS homescreen -->
+  <link rel="apple-touch-icon" href="icon.png" />
+
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/tabler-icons.min.css" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      background: #0f0f0f;
+      color: #f0f0f0;
+      min-height: 100vh;
+      min-height: -webkit-fill-available;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding-top: env(safe-area-inset-top);
+      padding-bottom: env(safe-area-inset-bottom);
+    }
+
+    .wrap {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2.5rem 1.5rem;
+      gap: 1.5rem;
+      width: 100%;
+      max-width: 360px;
+    }
+
+    h1 {
+      font-size: 15px;
+      font-weight: 500;
+      color: #888;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .ring-wrap { position: relative; width: 220px; height: 220px; }
+    svg.ring { transform: rotate(-90deg); }
+    #track { fill: none; stroke: #2a2a2a; stroke-width: 12; }
+    #progress {
+      fill: none;
+      stroke-width: 12;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 1s linear, stroke 0.4s;
+    }
+
+    .center-text {
+      position: absolute;
+      top: 50%; left: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+    }
+
+    #time-display {
+      font-size: 52px;
+      font-weight: 500;
+      color: #f0f0f0;
+      line-height: 1;
+      font-variant-numeric: tabular-nums;
+    }
+
+    #status-label {
+      font-size: 12px;
+      color: #666;
+      margin-top: 6px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .btn-main {
+      font-size: 17px;
+      padding: 14px 52px;
+      border-radius: 12px;
+      cursor: pointer;
+      border: 1px solid #333;
+      background: #1a1a1a;
+      color: #f0f0f0;
+      transition: background 0.15s, transform 0.1s;
+      font-family: inherit;
+      width: 100%;
+      max-width: 240px;
+    }
+    .btn-main:hover { background: #252525; }
+    .btn-main:active { transform: scale(0.97); }
+    .btn-main.running { background: #2a0d0d; color: #ff6b6b; border-color: #5a1a1a; }
+
+    .btn-reset {
+      font-size: 13px;
+      padding: 8px 20px;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid #2a2a2a;
+      background: transparent;
+      color: #666;
+      font-family: inherit;
+      transition: background 0.15s;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .btn-reset:hover { background: #1a1a1a; color: #aaa; }
+
+    .duration-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 13px;
+      color: #666;
+    }
+    .duration-row input[type=range] { width: 120px; accent-color: #1D9E75; }
+    .duration-row span { font-size: 13px; font-weight: 500; color: #ccc; min-width: 36px; }
+
+    .sets-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: #1a1a1a;
+      border: 1px solid #2a2a2a;
+      border-radius: 10px;
+      padding: 12px 24px;
+    }
+    .set-count { font-size: 28px; font-weight: 500; color: #f0f0f0; min-width: 36px; text-align: center; }
+    .set-label { font-size: 13px; color: #666; }
+
+    .done-flash { font-size: 15px; font-weight: 500; color: #1D9E75; min-height: 22px; }
+
+    .install-hint {
+      font-size: 12px;
+      color: #444;
+      text-align: center;
+      line-height: 1.5;
+      display: none;
+    }
+    .install-hint.show { display: block; }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Gym Rest Timer</h1>
+
+  <div class="ring-wrap">
+    <svg class="ring" width="220" height="220" viewBox="0 0 220 220">
+      <circle id="track" cx="110" cy="110" r="95"/>
+      <circle id="progress" cx="110" cy="110" r="95"/>
+    </svg>
+    <div class="center-text">
+      <div id="time-display">3:00</div>
+      <div id="status-label">listo</div>
+    </div>
+  </div>
+
+  <button class="btn-main" id="btn-main" onclick="toggleTimer()">Iniciar</button>
+
+  <div class="done-flash" id="done-msg"></div>
+
+  <div class="duration-row">
+    <i class="ti ti-clock" aria-hidden="true"></i>
+    <input type="range" min="1" max="5" step="1" value="3" id="dur-slider" oninput="onDurChange(this.value)">
+    <span id="dur-label">3 min</span>
+  </div>
+
+  <div class="sets-row">
+    <div class="set-label">Descansos completados</div>
+    <div class="set-count" id="set-count">0</div>
+  </div>
+
+  <button class="btn-reset" onclick="resetTimer()">
+    <i class="ti ti-refresh" aria-hidden="true"></i> Reiniciar
+  </button>
+
+  <p class="install-hint" id="install-hint">
+    Abre esta página en Safari → toca ↑ Compartir<br>→ "Agregar a pantalla de inicio"
+  </p>
+</div>
+
+<script>
+  const CIRCUMFERENCE = 2 * Math.PI * 95;
+  const prog = document.getElementById('progress');
+  prog.style.strokeDasharray = CIRCUMFERENCE;
+  prog.style.strokeDashoffset = 0;
+
+  let totalSecs = 3 * 60;
+  let remaining = totalSecs;
+  let interval = null;
+  let sets = 0;
+
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isStandalone = ('standalone' in navigator) && navigator.standalone;
+  if (isIOS && !isStandalone) {
+    document.getElementById('install-hint').classList.add('show');
+  }
+
+  function colorByFraction(f) {
+    if (f > 0.5) return '#1D9E75';
+    if (f > 0.2) return '#EF9F27';
+    return '#E24B4A';
+  }
+
+  function updateRing(rem) {
+    const f = rem / totalSecs;
+    prog.style.strokeDashoffset = CIRCUMFERENCE * (1 - f);
+    prog.style.stroke = colorByFraction(f);
+  }
+
+  function updateDisplay(rem) {
+    const m = Math.floor(rem / 60);
+    const s = rem % 60;
+    document.getElementById('time-display').textContent = m + ':' + String(s).padStart(2, '0');
+    updateRing(rem);
+  }
+
+  function toggleTimer() {
+    const btn = document.getElementById('btn-main');
+    if (interval) {
+      clearInterval(interval);
+      interval = null;
+      btn.textContent = 'Continuar';
+      btn.classList.remove('running');
+      document.getElementById('status-label').textContent = 'pausado';
+    } else {
+      document.getElementById('done-msg').textContent = '';
+      if (remaining <= 0) remaining = totalSecs;
+      btn.textContent = 'Pausar';
+      btn.classList.add('running');
+      document.getElementById('status-label').textContent = 'descansando';
+      interval = setInterval(tick, 1000);
+    }
+  }
+
+  function tick() {
+    remaining--;
+    updateDisplay(remaining);
+    if (remaining <= 0) {
+      clearInterval(interval);
+      interval = null;
+      sets++;
+      document.getElementById('set-count').textContent = sets;
+      document.getElementById('status-label').textContent = '¡listo!';
+      document.getElementById('done-msg').textContent = '¡A darle! 💪';
+      const btn = document.getElementById('btn-main');
+      btn.textContent = 'Iniciar';
+      btn.classList.remove('running');
+      remaining = totalSecs;
+      updateDisplay(remaining);
+      beep();
+    }
+  }
+
+  function beep() {
+    try {
+      const ctx = new (window.AudioContext || window.webkitAudioContext)();
+      [0, 0.15, 0.3].forEach(t => {
+        const o = ctx.createOscillator();
+        const g = ctx.createGain();
+        o.connect(g); g.connect(ctx.destination);
+        o.frequency.value = 880;
+        g.gain.setValueAtTime(0.4, ctx.currentTime + t);
+        g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + t + 0.12);
+        o.start(ctx.currentTime + t);
+        o.stop(ctx.currentTime + t + 0.13);
+      });
+    } catch(e) {}
+  }
+
+  function resetTimer() {
+    clearInterval(interval);
+    interval = null;
+    remaining = totalSecs;
+    sets = 0;
+    document.getElementById('set-count').textContent = 0;
+    document.getElementById('status-label').textContent = 'listo';
+    document.getElementById('done-msg').textContent = '';
+    const btn = document.getElementById('btn-main');
+    btn.textContent = 'Iniciar';
+    btn.classList.remove('running');
+    updateDisplay(remaining);
+  }
+
+  function onDurChange(v) {
+    document.getElementById('dur-label').textContent = v + ' min';
+    totalSecs = parseInt(v) * 60;
+    if (!interval) { remaining = totalSecs; updateDisplay(remaining); }
+  }
+
+  updateDisplay(remaining);
+</script>
+</body>
+</html>
